@@ -75,7 +75,7 @@ public class BaseRestController {
 		return RestUtil.wrapErrorResponse(ex, errorDetail);
 	}
 	
-	@ExceptionHandler(ValidationException.class)
+	@ExceptionHandler({ ValidationException.class, IllegalArgumentException.class })
 	@ResponseBody
 	public SimpleObject validationExceptionHandler(ValidationException validationException, HttpServletRequest request,
 	        HttpServletResponse response) {

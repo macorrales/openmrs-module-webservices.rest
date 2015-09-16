@@ -36,6 +36,8 @@ import org.openmrs.module.webservices.rest.web.v1_0.controller.MainResourceContr
 import org.openmrs.module.webservices.rest.web.v1_0.controller.MainSubResourceController;
 import org.openmrs.module.webservices.validation.ValidateUtil;
 
+import com.thoughtworks.xstream.converters.ConversionException;
+
 /**
  * A base implementation of a {@link CrudResource} that delegates CRUD operations to a wrapped
  * object
@@ -90,17 +92,24 @@ public abstract class DelegatingCrudResource<T> extends BaseDelegatingResource<T
 		}
 		
 		T delegate = handler.newDelegate();
-		setConvertedProperties(delegate, propertiesToCreate, handler.getCreatableProperties(), true);
-		ValidateUtil.validate(delegate);
-		delegate = save(delegate);
-		SimpleObject ret = (SimpleObject) ConversionUtil.convertToRepresentation(delegate, Representation.DEFAULT);
-		
-		// add the 'type' discriminator if we support subclasses
-		if (hasTypesDefined()) {
-			ret.add(RestConstants.PROPERTY_FOR_TYPE, getTypeName(delegate));
+		try {
+			setConvertedProperties(delegate, propertiesToCreate, handler.getCreatableProperties(), true);
+			ValidateUtil.validate(delegate);
+			delegate = save(delegate);
+			
+			SimpleObject ret = (SimpleObject) ConversionUtil.convertToRepresentation(delegate, Representation.DEFAULT);
+			// add the 'type' discriminator if we support subclasses
+			if (hasTypesDefined()) {
+				ret.add(RestConstants.PROPERTY_FOR_TYPE, getTypeName(delegate));
+			}
+			
+			return ret;
+		}
+		catch (ConversionException e) {
+			//TODO Include a meaningful message
+			throw new IllegalArgumentException(e);
 		}
 		
-		return ret;
 	}
 	
 	/**

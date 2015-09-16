@@ -16,35 +16,49 @@ package org.openmrs.module.webservices.rest.web;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import junit.framework.Assert;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatcher;
+import org.mockito.BDDMockito.Then;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
+import org.openmrs.Concept;
 import org.openmrs.User;
+import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.annotation.PropertySetter;
 import org.openmrs.module.webservices.rest.web.annotation.RepHandler;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.v1_0.resource.openmrs1_8.UserResource1_8;
 import org.openmrs.module.webservices.rest.web.resource.impl.BaseDelegatingResource;
+import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingCrudResource;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
+import org.openmrs.module.webservices.rest.web.v1_0.resource.openmrs1_8.UserResource1_8;
 import org.openmrs.util.Reflect;
 import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.util.ReflectionUtils;
 
+import com.thoughtworks.xstream.converters.ConversionException;
 /**
  * Contains tests for Representation Descriptions of all resources
  */
-@Ignore
-public class DelegatingCrudResourceTest extends BaseModuleWebContextSensitiveTest {
+
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({ ConversionUtil.class,RestUtil.class} )
+public class DelegatingCrudResourceTest  {
 
 	/**
 	 * This test looks at all subclasses of DelegatingCrudResource, and test all {@link RepHandler}
@@ -62,7 +76,7 @@ public class DelegatingCrudResourceTest extends BaseModuleWebContextSensitiveTes
 		Set<BeanDefinition> components = provider
 		        .findCandidateComponents("org.openmrs.module.webservices.rest.web.resource");
 		if (CollectionUtils.isEmpty(components))
-			Assert.fail("Faile to load any resource classes");
+			Assert.fail("Failed to load any resource classes");
 		
 		for (BeanDefinition component : components) {
 			Class resourceClass = Class.forName(component.getBeanClassName());
@@ -117,6 +131,41 @@ public class DelegatingCrudResourceTest extends BaseModuleWebContextSensitiveTes
 				}
 			}
 		}
+	}
+	
+	class TypeMatcher extends ArgumentMatcher<Type>{
+
+		@Override
+		public boolean matches(Object argument) {
+			return (argument.getClass()==Type.class);
+		}
+		
+	}
+	
+	 
+	/**
+	 * create should throw IllegalArgumentException in case of a ConversionException
+	 */
+	@Test(expected=IllegalArgumentException.class)
+	public void createShouldThrowIAEonCE(){
+		
+		// Not relevant for the test
+		PowerMockito.mockStatic(RestUtil.class);
+		Mockito.when(RestUtil.getDefaultLimit()).thenReturn(20);
+		
+		
+		// Simulated behaviour
+		PowerMockito.mockStatic(ConversionUtil.class);
+		Mockito.when(ConversionUtil.convert(Matchers.anyObject(), Matchers.argThat(new TypeMatcher()))).thenThrow(new ConversionException("faked"));		
+		
+		@SuppressWarnings("unchecked")
+		DelegatingCrudResource<Concept> dcr = Mockito.mock(DelegatingCrudResource.class,Mockito.CALLS_REAL_METHODS);
+		
+		SimpleObject propertiesToCreate= new SimpleObject();
+		RequestContext context = new RequestContext();
+		
+		dcr.create(propertiesToCreate, context);
+		
 	}
 	
 	/**

@@ -61,6 +61,17 @@
 			<type>pom</type>
 			<version>${openmrs.version.1.8}</version><!--$NO-MVN-MAN-VER$-->
 		</dependency>
+		
+            <dependency>
+		        <groupId>org.powermock</groupId>
+		      	<artifactId>powermock-module-junit4</artifactId>
+		      	<scope>test</scope>
+		    </dependency>
+		    <dependency>
+		      	<groupId>org.powermock</groupId>
+		      	<artifactId>powermock-api-mockito</artifactId>
+		      	<scope>test</scope>
+		    </dependency>		
 	</dependencies>
 
 </project>
